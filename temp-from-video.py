@@ -1,48 +1,59 @@
 import cv2
 import pytesseract
-import csv
-from datetime import datetime
 
-# Path to tesseract executable (modify if necessary)
-pytesseract.pytesseract.tesseract_cmd = r"/usr/bin/tesseract"
+# Load the image
+image = cv2.imread("image.png")
 
+# scale image 50%
+scale_percent = 50
+width = int(image.shape[1] * scale_percent / 100)
+height = int(image.shape[0] * scale_percent / 100)
+dim = (width, height)
+image = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
 
-def extract_temperatures(frame):
-    # Convert frame to grayscale for better OCR accuracy
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+# Convert the image to grayscale
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    # Extract text from frame
-    text = pytesseract.image_to_string(gray)
+# Expected numbers
+expected_numbers = ["29.3", "32.8", "24.5"]
 
-    # Extract temperature values from text (assuming they're in a recognizable format e.g., "23.4°C")
-    temps = [t.replace("°C", "").strip() for t in text.split() if "°C" in t]
+# Experiment with kernel sizes, shapes, and iterations
+shapes = [cv2.MORPH_RECT, cv2.MORPH_ELLIPSE, cv2.MORPH_CROSS]
+found_optimal = False
 
-    return temps
+for shape in shapes:
+    for width in range(2, 6):  # Adjust as needed
+        for iterations in range(1, 4):  # Adjust as needed
+            kernel = cv2.getStructuringElement(shape, (width, 2))
+            dilated = cv2.dilate(gray, kernel, iterations=iterations)
 
+            # Threshold the image
+            _, threshed = cv2.threshold(
+                dilated, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+            )
 
-def main():
-    # Open the video
-    cap = cv2.VideoCapture("path_to_your_video.mp4")
+            # Use pytesseract to extract text
+            text = pytesseract.image_to_string(threshed, config="--psm 6")
 
-    # Open a CSV file for writing
-    with open("temperature_data.csv", "w", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerow(["Time", "Temperature1", "Temperature2", "Temperature3"])
+            # Split the text into individual numbers
+            numbers = [num for num in text.split() if num.replace(".", "").isdigit()]
 
-        while cap.isOpened():
-            ret, frame = cap.read()
+            print(
+                f"Shape: {shape}, Width: {width}, Iterations: {iterations}, Numbers: {numbers}"
+            )
 
-            if not ret:
+            # Check if at least 2 out of 3 extracted numbers match the expected numbers
+            common_numbers = set(numbers).intersection(set(expected_numbers))
+            if len(common_numbers) >= 2:
+                print("Found optimal (or near-optimal) settings!")
+                found_optimal = True
                 break
 
-            temperatures = extract_temperatures(frame)
+        if found_optimal:
+            break
 
-            if len(temperatures) == 3:
-                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                writer.writerow([timestamp] + temperatures)
-
-    cap.release()
-
-
-if __name__ == "__main__":
-    main()
+    if found_optimal:
+        break
+# show optimal thresholded image
+cv2.imshow("threshed", threshed)
+cv2.waitKey(0)
