@@ -1,59 +1,99 @@
 import cv2
 import pytesseract
+import csv
+import time
 
-# Load the image
-image = cv2.imread("image.png")
+# Function for selecting ROI
+roi_selected = False
+roi_start_point = None
+roi_end_point = None
 
-# scale image 50%
-scale_percent = 50
-width = int(image.shape[1] * scale_percent / 100)
-height = int(image.shape[0] * scale_percent / 100)
-dim = (width, height)
-image = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
 
-# Convert the image to grayscale
-gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+def select_roi(event, x, y, flags, param):
+    global roi_selected, roi_start_point, roi_end_point
+    if event == cv2.EVENT_LBUTTONDOWN:
+        roi_start_point = (x, y)
+    elif event == cv2.EVENT_LBUTTONUP:
+        # Ensure top-left and bottom-right are correctly ordered
+        x1, x2 = sorted([roi_start_point[0], x])
+        y1, y2 = sorted([roi_start_point[1], y])
+        roi_start_point, roi_end_point = (x1, y1), (x2, y2)
 
-# Expected numbers
-expected_numbers = ["29.3", "32.8", "24.5"]
+        roi_selected = True
+        vis_image = cv2.cvtColor(gray.copy(), cv2.COLOR_GRAY2BGR)
+        cv2.rectangle(vis_image, roi_start_point, roi_end_point, (255, 0, 0), 2)
+        cv2.imshow("video", vis_image)
 
-# Experiment with kernel sizes, shapes, and iterations
-shapes = [cv2.MORPH_RECT, cv2.MORPH_ELLIPSE, cv2.MORPH_CROSS]
-found_optimal = False
 
-for shape in shapes:
-    for width in range(2, 6):  # Adjust as needed
-        for iterations in range(1, 4):  # Adjust as needed
-            kernel = cv2.getStructuringElement(shape, (width, 2))
-            dilated = cv2.dilate(gray, kernel, iterations=iterations)
+# Load the video
+video_path = "video.mp4"
+cap = cv2.VideoCapture(video_path)
 
-            # Threshold the image
-            _, threshed = cv2.threshold(
-                dilated, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
-            )
+# Check if video opened successfully
+if not cap.isOpened():
+    print("Error: Could not open video.")
+    exit()
 
-            # Use pytesseract to extract text
-            text = pytesseract.image_to_string(threshed, config="--psm 6")
+# Extract the first frame
+ret, frame = cap.read()
 
-            # Split the text into individual numbers
-            numbers = [num for num in text.split() if num.replace(".", "").isdigit()]
+if not ret:
+    print("Error: Could not read frame from video.")
+    cap.release()
+    exit()
 
-            print(
-                f"Shape: {shape}, Width: {width}, Iterations: {iterations}, Numbers: {numbers}"
-            )
+# Convert the frame to grayscale
+gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-            # Check if at least 2 out of 3 extracted numbers match the expected numbers
-            common_numbers = set(numbers).intersection(set(expected_numbers))
-            if len(common_numbers) >= 2:
-                print("Found optimal (or near-optimal) settings!")
-                found_optimal = True
-                break
-
-        if found_optimal:
-            break
-
-    if found_optimal:
-        break
-# show optimal thresholded image
-cv2.imshow("threshed", threshed)
+# Display the frame and select ROI
+cv2.namedWindow("video")
+cv2.setMouseCallback("video", select_roi)
+cv2.imshow("video", gray)
 cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+# Initialize CSV file
+csv_file = "output.csv"
+with open(csv_file, "w", newline="") as file:
+    writer = csv.writer(file)
+    writer.writerow(["Time", "Temperature"])
+
+# FPS of the video
+fps = int(cap.get(cv2.CAP_PROP_FPS))
+
+# Interval for extraction in seconds
+interval = 0.5  # change this as required
+
+# Calculate frames to skip
+skip_frames = int(fps * interval)
+
+current_time = 0
+while ret:
+    # Extract number from ROI
+    roi = gray[
+        roi_start_point[1] : roi_end_point[1], roi_start_point[0] : roi_end_point[0]
+    ]
+    text = pytesseract.image_to_string(roi, config="--psm 6")
+    numbers = [num for num in text.split() if num.replace(".", "").isdigit()]
+
+    # Assuming you're looking for the first number (or change logic accordingly)
+    temp = numbers[0] if numbers else "N/A"
+
+    # Write time and temperature to CSV
+    with open(csv_file, "a", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow([current_time, temp])
+
+    # Skip frames and update current_time
+    cap.set(1, cap.get(1) + skip_frames)
+    current_time += interval
+
+    # Read the next frame
+    ret, frame = cap.read()
+    if ret:
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+# Release video capture object
+cap.release()
+
+print(f"Data written to {csv_file}")
