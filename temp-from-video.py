@@ -26,7 +26,7 @@ def select_roi(event, x, y, flags, param):
 
 
 # Load the video
-video_path = "video.mp4"
+video_path = "HeatCameraText.mp4"
 cap = cv2.VideoCapture(video_path)
 
 # Check if video opened successfully
@@ -44,6 +44,12 @@ if not ret:
 
 # Convert the frame to grayscale
 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+# half resolution
+scale_percent = 90
+width = int(gray.shape[1] * scale_percent / 100)
+height = int(gray.shape[0] * scale_percent / 100)
+dim = (width, height)
+gray = cv2.resize(gray, dim, interpolation=cv2.INTER_AREA)
 
 # Display the frame and select ROI
 cv2.namedWindow("video")
@@ -62,7 +68,7 @@ with open(csv_file, "w", newline="") as file:
 fps = int(cap.get(cv2.CAP_PROP_FPS))
 
 # Interval for extraction in seconds
-interval = 0.5  # change this as required
+interval = 2  # change this as required
 
 # Calculate frames to skip
 skip_frames = int(fps * interval)
@@ -73,7 +79,20 @@ while ret:
     roi = gray[
         roi_start_point[1] : roi_end_point[1], roi_start_point[0] : roi_end_point[0]
     ]
-    text = pytesseract.image_to_string(roi, config="--psm 6")
+
+    # resize
+    roi = cv2.resize(roi, dim, interpolation=cv2.INTER_AREA)
+
+    # threshold
+    ret, roi = cv2.threshold(roi, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    # smoothing
+    roi = cv2.medianBlur(roi, 3)
+
+    # show for debugging
+    cv2.imshow("roi", roi)
+    cv2.waitKey(1)
+    text = pytesseract.image_to_string(roi, config="--psm 12")
     numbers = [num for num in text.split() if num.replace(".", "").isdigit()]
 
     # Assuming you're looking for the first number (or change logic accordingly)
@@ -92,6 +111,7 @@ while ret:
     ret, frame = cap.read()
     if ret:
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray = cv2.resize(gray, dim, interpolation=cv2.INTER_AREA)
 
 # Release video capture object
 cap.release()
