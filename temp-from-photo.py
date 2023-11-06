@@ -24,11 +24,11 @@ def select_roi(event, x, y, flags, param):
 
 
 # Load the image
-image_path = "image.png"
+image_path = "frames/f.jpg"
 image = cv2.imread(image_path)
 
 if image is None:
-    print(f"Failed to load image: {image_path}")
+    #print(f"Failed to load image: {image_path}")
     exit()
 
 # Scale image 50%
@@ -67,6 +67,6 @@ print(text)
 numbers = [num for num in text.split() if num.replace(".", "").isdigit()]
 
 if expected_number in numbers:
-    print(f"Found the number {expected_number}!")
+    print("Found the number {expected_number}!")
 else:
-    print(f"Did not find the number {expected_number}.")
+    print ("Did not find the number {expected_number}.")
