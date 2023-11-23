@@ -1,1 +1,7 @@
+<<<<<<< Updated upstream
 > 60.8°C
+=======
+G98
+ccae
+e933
+>>>>>>> Stashed changes
