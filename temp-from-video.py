@@ -32,7 +32,9 @@ def select_roi(event, x, y, flags, param):
 
 
 # Load the video
-video_path = "HeatCameraText.mp4"
+# video_path = "HeatCameraText.mp4"
+video_path = "35x35V3 T2.MP4"
+start_time_seconds = 5
 cap = cv2.VideoCapture(video_path)
 
 # Check if video opened successfully
@@ -78,9 +80,12 @@ with open(csv_file, "w", newline="") as file:
 
 # FPS of the video
 fps = int(cap.get(cv2.CAP_PROP_FPS))
+#frame_rate = cap.get(cv2.CAP_PROP_FPS)
+start_frame = int(start_time_seconds * fps)
+cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
 
 # Interval for extraction in seconds
-interval = 2  # change this as required
+interval = 0.2  # change this as required
 
 # Calculate frames to skip
 skip_frames = int(fps * interval)
@@ -136,11 +141,22 @@ while ret:
     with open(csv_file, "a", newline="") as file:
         writer = csv.writer(file)
         if abs(number - previous_number) < 50: 
+<<<<<<< Updated upstream
             writer.writerow([current_time, number])
             previous_number = number
             
             # if (previous_number):
             #     previous_number = previous_number[0]
+=======
+            #if number != previous_number:
+            # writer.writerow([current_time, number])
+            writer.writerow([str(round(current_time, 2)), number])
+            previous_number = number    
+            # if (previous_number):
+            #     previous_number = previous_number[0]
+        else:
+            writer.writerow([str(round(current_time, 2)), previous_number])
+>>>>>>> Stashed changes
 
     # Skip frames and update current_time
     cap.set(1, cap.get(1) + skip_frames)

@@ -33,8 +33,14 @@ def select_roi(event, x, y, flags, param):
 
 # Load the video
 # video_path = "HeatCameraText.mp4"
+<<<<<<< Updated upstream
 video_path = "volt_test.mp4"
 cap = cv2.VideoCapture(video_path)
+=======
+video_path = "testvid2.MP4"
+cap = cv2.VideoCapture(video_path)
+cap.set(cv2.CAP_PROP_POS_FRAMES, 70)
+>>>>>>> Stashed changes
 
 # Check if video opened successfully
 if not cap.isOpened():
@@ -78,6 +84,7 @@ with open(csv_file, "w", newline="") as file:
     writer.writerow(["Time", "Temperature"])
 
 # FPS of the video
+<<<<<<< Updated upstream
 #fps = int(cap.get(cv2.CAP_PROP_FPS))
 fps = 30 
 
@@ -86,6 +93,17 @@ interval = 2  # change this as required
 
 # Calculate frames to skip
 skip_frames = int(fps * interval)
+=======
+fps = int(cap.get(cv2.CAP_PROP_FPS))
+#fps = 30 
+
+# Interval for extraction in seconds
+interval = 1  # change this as required
+
+# Calculate frames to skip
+skip_frames = int(fps * interval)
+#skip_frames = 5
+>>>>>>> Stashed changes
 
 current_time = 0
 previous_number = 0 
@@ -98,8 +116,13 @@ while ret:
     roi = gray[
         roi_start_point[1] : roi_end_point[1], roi_start_point[0] : roi_end_point[0]
     ]
+<<<<<<< Updated upstream
     # thr = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
     #                         cv2.THRESH_BINARY, 21, 23)
+=======
+    thr = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
+                            cv2.THRESH_BINARY, 21, 23)
+>>>>>>> Stashed changes
 
     # resize
     #roi = cv2.resize(roi, dim, interpolation=cv2.INTER_AREA)
@@ -109,10 +132,18 @@ while ret:
 
 
     # threshold
+<<<<<<< Updated upstream
     #ret, roi = cv2.threshold(roi, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
     # smoothing
     #roi = cv2.medianBlur(roi, 3)
+=======
+    ret, roi = cv2.threshold(roi, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    #roi = 255 - roi
+    # smoothing
+    # roi = cv2.medianBlur(roi, 3)
+    roi = cv2.medianBlur(roi, 5)
+>>>>>>> Stashed changes
 
     # show for debugging
     cv2.imshow("roi", roi)
@@ -120,8 +151,20 @@ while ret:
     cv2.imwrite(frame_filename, roi)
     cv2.waitKey(1)
 
+<<<<<<< Updated upstream
     text = pytesseract.image_to_string(roi, config="--psm 6")
     numbers = re.findall(r'\d+\.\d+|\d+', text)
+=======
+    text = pytesseract.image_to_string(roi, lang = "letsgodigital", config="--psm 6 tessedit_char_whitelist=0123456789.")
+    # text = pytesseract.image_to_string(roi, config="--psm 6 tessedit_char_whitelist=0123456789.")
+    # text = pytesseract.image_to_string(frame, config="--psm 10 tessedit_char_whitelist=0123456789.")
+    numbers = re.findall(r'\d+\.\d+|\d+', text)
+    # numbers = re.findall(r'-?\d+\.\d+', text)
+
+    print("detected:")
+    print(text)
+    
+>>>>>>> Stashed changes
 
     # numbers = [num for num in text.split() if num.replace(".", "").isinteger()]
 
@@ -130,17 +173,29 @@ while ret:
     if(numbers):
         number = float(numbers[1]) if len(numbers) > 1 else float(numbers[0])
         
+<<<<<<< Updated upstream
     print(previous_number)
     print(number)
     print(type(number))
     print(type(previous_number))
+=======
+    # print(previous_number)
+    # print(number)
+    # print(type(number))
+    # print(type(previous_number))
+>>>>>>> Stashed changes
     # Write time and temperature to CSV
     with open(csv_file, "a", newline="") as file:
         writer = csv.writer(file)
         if abs(number - previous_number) < 50: 
             writer.writerow([current_time, number])
             previous_number = number
+<<<<<<< Updated upstream
             
+=======
+        else:
+            writer.writerow(current_time, previous_number)
+>>>>>>> Stashed changes
             # if (previous_number):
             #     previous_number = previous_number[0]
 
